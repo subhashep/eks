@@ -1,0 +1,122 @@
+===============================================================================
+## Tolerations and taints 
+===============================================================================
+
+
+
+## They are mechanisms in Kubernetes that allow you to control which nodes a pod can be scheduled on
+
+## Taints are set on nodes, and tolerations are set on pods
+
+## A taint on a node instructs the scheduler to avoid placing a pod on that node unless the pod has a matching toleration.
+
+
+### Step: Tainting the Nodes
+
+## First, you'll need to apply taints to your nodes
+## You can do this by using the `kubectl taint` command
+## Replace `<node-name>` with the actual name of your node.
+
+kubectl get nodes
+
+## Make note of the node names of each of the nodes
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl taint nodes <node-name1> key1=value1:NoSchedule
+kubectl taint nodes <node-name2> key2=value2:NoExecute
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This will add taints to the nodes that prevent pods from being scheduled unless they tolerate the taints.
+
+### Step: Deploying Nginx with Tolerations
+
+## You'll want to deploy Nginx with tolerations that allow it to be scheduled on the tainted nodes
+
+
+
+=====================================================================
+
+## Copy paste 01-templates/nx-toleration-deployment.txt
+
+## Then, do the following:
+
+kubectl apply -f nx-toleration-deployment.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## GET POD DETAILS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+### Step: Verifying the Deployment
+
+## After applying the tolerations, you should verify that the Nginx pods are running on the correct nodes.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl get pods -o wide
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## The output will show you which nodes the pods are running on
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl describe pod <pod-name>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+### Step: Understanding Failures
+
+## If a pod with tolerations cannot be scheduled on a tainted node (e.g., due to resource constraints or other scheduling failures), Kubernetes will try to schedule it on another node without the taint or keep it in a pending state if no suitable node is available.
+
+You can simulate a failure by tainting all nodes with a taint no pod tolerates and observe the pod's status:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl taint nodes --all key3=value3:NoExecute
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Check taints on nodes:
+
+kubectl get nodes -o json | jq '.items[].spec.taints'
+
+## Then check the pods' status:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl get pods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You'll notice that the pods will not be executed and remain in a pending state.
+
+### Step: Removing Taints
+
+If you want to remove the taints from the nodes, you can use the following command, which includes a `-` at the end of the taint to indicate removal:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl taint nodes <node-name> key1=value1:NoSchedule-
+kubectl taint nodes <node-name> key2=value2:NoExecute-
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After removing the taints, Kubernetes will be able to schedule the pods on those nodes again.
+
+### Step: Monitoring and Debugging
+
+## You can monitor the events and logs for your pods to understand why they might not be tolerating the taints:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE DEPLOYMENT
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete deployment ep33-nginx-toleration-deployment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## That's all for now
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

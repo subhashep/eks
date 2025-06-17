@@ -1,0 +1,123 @@
+# 🚀 Introduction to Kubernetes and EKS — The Smart City of Cloud
+
+---
+
+> Imagine Kubernetes as a smart city. Each **building** (app) is a **container**, and the **city infrastructure** ensures every building has power, plumbing, and is exactly where it should be.
+
+---
+
+## 🧠 Understanding the Core Building Blocks
+
+### 🏗️ **Cluster = The Entire City**
+
+* A **Kubernetes Cluster** is like an entire city made up of:
+
+  * **Control Plane (Master Node)** 🧭 – The city hall that plans and decides.
+  * **Worker Nodes (Data Plane)** 🏭 – The workers that do the actual job (running your applications).
+
+---
+
+## ⚙️ Control Plane – 🧠 The Brain of Kubernetes
+
+| Component         | Role                                                      |
+| ----------------- | --------------------------------------------------------- |
+| `kube-apiserver`  | The receptionist: Receives all requests (like `kubectl`)  |
+| `etcd`            | The ledger: A distributed database of the city's state    |
+| `kube-controller` | The supervisor: Ensures reality matches the desired state |
+| `kube-scheduler`  | The job allocator: Assigns work to worker nodes           |
+
+---
+
+## 🏭 Data Plane – 💪 The Muscles of Kubernetes
+
+| Component    | Role                                                   |
+| ------------ | ------------------------------------------------------ |
+| `kubelet`    | The manager: Ensures containers are running properly   |
+| `kube-proxy` | The traffic officer: Routes network requests correctly |
+
+---
+
+## 🧱 Kubernetes Objects — Building Materials
+
+> Kubernetes objects describe your desired state, just like blueprints in architecture.
+
+| 🧱 Object    | 🔍 Purpose                                                        |
+| ------------ | ----------------------------------------------------------------- |
+| `Pod`        | The smallest unit: wraps one or more containers                   |
+| `Deployment` | Blueprint for rolling out updates to apps safely                  |
+| `ReplicaSet` | Ensures the desired number of pods are always running             |
+| `DaemonSet`  | Ensures a pod is running on **every** node                        |
+| `Job`        | Runs a pod **until** successful completion                        |
+| `Service`    | A stable virtual IP and DNS name for accessing a set of pods      |
+| `Label`      | Tags for objects to group, filter, or select them (like metadata) |
+
+---
+
+## 🎛️ Tools of the Trade
+
+### 🧰 `kubectl` – Your Command Console [*** This is only for demo, not to try ***]
+
+* Think of it like your walkie-talkie to talk to city hall (API Server).
+* Config file: `~/.kube/config`
+
+```bash
+kubectl get pods
+kubectl apply -f myapp.yaml
+```
+
+---
+
+### 🛠️ `eksctl` – AWS-specific Cluster Manager [*** This is only for demo, not to try ***]
+
+* Think of it as the **Kubernetes architect** for AWS EKS clusters.
+* You can create or destroy a full EKS cluster in minutes!
+
+```bash
+eksctl create cluster --name my-cluster --region us-east-1
+```
+
+---
+
+### 🏗️ `kops` – Advanced Architect for Multi-Platform Kubernetes
+
+* Great for creating HA clusters on AWS, GCE, or VMware.
+* Used for production-grade deployments.
+
+---
+
+## ☁️ Amazon EKS Components Overview
+
+```
+          +-------------------+
+          | EKS Control Plane |
+          | (AWS Managed)     |
+          +--------+----------+
+                   |
+     +-------------+--------------+
+     |                            |
++----v----+               +-------v------+
+| Worker  |               |  Fargate     |
+| Nodes   |               |  (Serverless)|
++---------+               +--------------+
+
+           +---------------------+
+           | VPC – Network Layer |
+           +---------------------+
+```
+
+* **EKS Control Plane**: AWS manages `etcd`, `kube-api`, etc.
+* **Worker Nodes**: EC2 instances (you manage)
+* **Fargate**: Serverless pods (AWS manages)
+* **VPC**: Secure, isolated network
+
+---
+
+## 🧪 Quick Quiz (Self-Test)
+
+1. What component schedules pods in the cluster?
+2. How is a DaemonSet different from a Deployment?
+3. How do you expose a set of pods to external traffic?
+4. What is the purpose of `kubelet`?
+5. Which AWS service is responsible for managing the EKS control plane?
+
+---

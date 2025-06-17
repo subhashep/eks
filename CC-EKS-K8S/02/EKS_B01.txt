@@ -1,0 +1,351 @@
+
+=====================================================================
+
+Create EKS Cluster
+
+=====================================================================
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CODE-SERVER -> Environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cd ~/environment
+
+eksctl create cluster --name=ep33-eks-01 \
+                      --region=${AWS_REGION} \
+                      --zones=${AZ1},${AZ2} \
+                      --without-nodegroup 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Investigating the Amazon EKS pricing model
+
+
+## Amazon EKS pricing: https://aws.amazon.com/eks/pricing/
+
+## AWS Pricing Calculator: https://calculator.aws
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Common mistakes when using EKS
+==============================
+
+## Leaving clusters running: If you don’t need your EKS cluster, shut it down or at least remove or scale in the node groups. Creating a cluster for dev or test environments (or even just to try the code in the book) will cost you real money, so if you’re not using it, shut it down.
+
+## Not having access: The AWS user account used to create the cluster is the only user account that will have access initially. To allow other users, groups, or roles access to the cluster (e.g., using kubectl) you need to add them to the aws-auth ConfigMap. Please read Chapter 6, Securing and Accessing Clusters on EKS, for more information.
+
+## Running out of Pod IP addresses: With the AWS CNI, every Pod is assigned a VPC IP address. If you don’t configure your VPC and EKS cluster correctly, you will run out of IP addresses and your cluster will not be able to schedule any more. Please read Chapter 7, Networking in EKS, for more information.
+
+## My cluster IP address is not accessible from my workstation: Clusters can be private (only accessible from the AWS and connected private networks) or public (accessible from the internet), so depending on how the cluster is configured, as well as the firewalls between your client and the API servers, you may not have access to the API servers.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## List clusters
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+eksctl get clusters
+
+aws eks list-clusters
+
+aws eks describe-cluster --name ep33-eks-01
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create NodeGroup
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+eksctl create nodegroup --cluster=ep33-eks-01 \
+                        --region=${AWS_REGION} \
+                        --name=ep33-ng-01 \
+                        --node-type=t3.medium \
+                        --nodes=2 \
+                        --node-volume-size=20 \
+                        --ssh-access \
+                        --ssh-public-key=ep33-eks \
+                        --managed \
+                        --external-dns-access
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Observe output:
+
+## Discuss the following:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Get Cluster node, storage, and Pod details
+
+kubectl get nodes
+
+## Try these commands and observe
+
+kubectl get pv --sort-by=.spec.capacity.storage
+
+## The above command might not produce any results
+
+kubectl get po --all-namespaces
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Observe VPC settings:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Console -> VPC
+
+## Filter your VPC
+
+## Notice the following settings:
+
+## IGW
+
+## Subnets:
+
+	## Public Subnet AZa
+
+	## Public Subnet AZb
+
+	## Private Subnet AZa
+
+	## Private Subnet AZb
+
+## Route Tables
+
+	## Main Route Table
+
+	## Public Route Table - associated to Pub Subnet AZa and AZb
+
+	## Private Route Table AZa - associated to Prv Subnet AZa
+
+	## Private Route Table AZb - associated to Prv Subnet AZb
+
+## NAT Gateway
+
+## NACL
+
+## Security Groups
+
+=====================================================================
+
+## CREATE nginx DEPLOYMENT
+
+=====================================================================
+
+## Copy paste 01-templates/nx-deployment.txt
+
+## Then, do the following:
+
+kubectl apply -f nx-deployment.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## GET POD DETAILS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get pods -l 'app=nginx' -o wide | awk {'print $1" " $3 " " $6'} | column -t
+
+kubectl get pods -l 'app=nginx' -o yaml | grep 'podIP:'
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Creating a Service
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## So we have pods running nginx in a flat, cluster wide, address space. 
+
+## In theory, you could talk to these pods directly, but what happens when a node dies? 
+
+## The pods die with it, and the Deployment will create new ones, with different IPs. 
+
+## This is the problem a Service solves.
+
+## A Kubernetes Service is an abstraction which defines a logical set of Pods running somewhere in your cluster, that all provide the same functionality. 
+
+## When created, each Service is assigned a unique IP address (also called clusterIP). 
+
+## This address is tied to the lifespan of the Service, and will not change while the Service is alive. 
+
+## Pods can be configured to talk to the Service, and know that communication to the Service will be automatically load-balanced out to some pod that is a member of the Service.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create Service
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl expose deployment/ep33-nginx-deployment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Get Service
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get svc ep33-nginx-deployment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Describe Service
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl describe svc ep33-nginx-deployment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Delete Service
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete service ep33-nginx-deployment
+
+=====================================================================
+
+## CREATE CLUSTER IP OBJECT
+
+=====================================================================
+
+## Copy paste 01-templates/nx-clusterip.txt
+
+## Then, do the following:
+
+kubectl create -f nx-clusterip.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## INTERNAL IP EXPOSED BY CLUSTER IP
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get pods -o wide | awk {'print $1" " $3 " " $6'} | column -t
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DESCRIBE NGINX-SERVICE
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl describe service ep33-nginx-service
+
+<<make note of Private IP address>>
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## TEST ACCESS WITHIN CLUSTER
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl run local-test --rm -i --tty --image ubuntu -- bash
+
+## Inside, At Ubuntu Container -> Bash -> Root Prompt:
+
+apt-get update && apt-get install curl -y
+
+curl ep33-nginx-service
+
+## --OR--
+
+curl --silent <<private IP of ep33-nginx-service>> | grep title
+
+exit
+
+## We are back in CODE-SERVER Terminal
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CREATE NODE PORT SERVICE
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete service ep33-nginx-service
+
+## Copy paste 01-templates/nx-nodeport.txt
+
+## Then, do the following:
+
+kubectl create -f nx-nodeport.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## NODE PORT SERVICE DETAILS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get service/ep33-nginx-service
+
+## The Service type is a NodePort
+
+## Notice that a ClusterIP is also created automatically which takes the route from the NodePort.
+
+## The NodePort Service is exposed externally on the available worker nodes at port 32194 or something like that. Make note of this port
+
+kubectl get nodes -o wide |  awk {'print $1" " $2 " " $7'} | column -t
+
+## Make note of the public IP address of one of the nodes
+
+## On AWS Console -> EC2 -> Select one of the Nodes -> Security -> Security Group for SSH > Edit Inbound Rules
+
+## Add Rule: 
+
+## Custom TCP - Port Range 30000-65435 - Source: 0.0.0.0/0
+
+## Open a browser tab and type <<public IP>>:<node port>>
+
+## Do you see NGINX web server home page?
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## LOAD BALANCER SERVICE
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete service ep33-nginx-service
+
+## Copy paste 01-templates/nx-loadbalancer.txt
+
+## Then, do the following:
+
+kubectl create -f nx-loadbalancer.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## LOAD BALANCER DETAILS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get service/ep33-nginx-service |  awk {'print $1" " $2 " " $4 " " $5'} | column -t
+
+## Make note of Loadbalancer Endpoint. Copy
+
+## Paste LB Endpoint on a browser tab:
+
+## Do you see NGINX web server home page?
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CONGRATULATIONS
+
+## You have successfully created your first cluster and a nodegroup
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE DEPLOYMENT AND SERVICE
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete service ep33-nginx-service
+
+kubectl delete deployment ep33-nginx-deployment
+
+## (deployment or service first, discuss)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## That's all for now
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

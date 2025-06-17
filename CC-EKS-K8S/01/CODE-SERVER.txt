@@ -1,0 +1,122 @@
+=====================================================================
+
+**IMPORTANT** :: Before we start:
+
+=====================================================================
+
+## Create a folder LAB on your system where you have read-write access.
+
+## Whenever you receive lab materials in zip format, unzip them in this LAB folder
+
+## Open LAB directory in Visual Studio Code (Any IDE that can open folder and subfolders and can show all text, markdown and images  is most preferred editor for this program)
+
+## Once loaded in Visual Studio Code Right click on LAB folder, click "Find in Folder"
+
+	a) Find and Replace all "ep33" to your id - for example "ep51"
+
+	b) Find and Replace **NOT** all, but select instances only, "us-east-1" to your region - for example "eu-north-1" -- Wait for trainer guidance
+
+
+
+=====================================================================
+
+## OPEN CODE-SERVER IDE
+
+## We should configure our AWS CLI with our deployment region as default:
+
+export MY_ID=ep33
+export AWS_REGION=us-east-1
+
+## In AWS Region North Virginia, the selected AZs are 'a' and 'b'
+## This may not necessarily be the same in other regions
+## Consult with the trainer and decide AZ selection
+
+export AZ1=us-east-1a
+export AZ2=us-east-1b
+
+## Retrieve your AWS account ID
+
+export ACCOUNT_ID=$(aws sts get-caller-identity --output text --query Account)
+
+## Create ~/.envvars and store all exports for multi-terminal use
+
+cat <<EOF > ~/.envvars
+export MY_ID=${MY_ID}
+export AWS_REGION=${AWS_REGION}
+export AZ1=${AZ1}
+export AZ2=${AZ2}
+export ACCOUNT_ID=${ACCOUNT_ID}
+EOF
+
+## Source this file from both bash profile and bashrc to ensure variable persistence
+
+grep -qxF 'source ~/.envvars' ~/.bash_profile || echo 'source ~/.envvars' >> ~/.bash_profile
+grep -qxF 'source ~/.envvars' ~/.bashrc || echo 'source ~/.envvars' >> ~/.bashrc
+
+## Apply environment immediately for current shell
+
+source ~/.envvars
+
+## Set AWS default region for CLI commands
+
+aws configure set default.region ${AWS_REGION}
+aws configure get default.region
+
+## Create KMS CMK and alias for the project
+
+aws kms create-alias --alias-name alias/ep33-cmkey --region ${AWS_REGION} \
+  --target-key-id $(aws kms create-key --query KeyMetadata.Arn --output text)
+
+export MASTER_ARN=$(aws kms describe-key \
+  --key-id alias/ep33-cmkey \
+  --query KeyMetadata.Arn \
+  --output text \
+  --region ${AWS_REGION})
+
+## Persist MASTER_ARN to ~/.envvars
+
+echo "export MASTER_ARN=${MASTER_ARN}" >> ~/.envvars
+source ~/.envvars
+
+
+
+
+=====================================================================
+
+
+## Validate the IAM role
+
+## Use the GetCallerIdentity CLI command to validate that the CODE-SERVER IDE is using the correct IAM role.
+
+aws sts get-caller-identity
+
+## Do NOT go ahead if the above command does not return "epXX-EksWorkshopIdeRole-yyyyy"
+
+(Fix the problem before proceeding to the next lab)
+
+## INSTALL JQ
+==============
+
+sudo yum install jq -y;
+
+=====================================================================
+
+## Create SSH Key
+
+=====================================================================
+
+ssh-keygen
+
+## Upload the public key to your region
+
+aws ec2 import-key-pair --region ${AWS_REGION} --key-name "ep33-eks" --public-key-material fileb://~/.ssh/id_rsa.pub
+
+## CREATE AWS CMK
+
+=====================================================================
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

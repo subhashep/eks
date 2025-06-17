@@ -1,0 +1,211 @@
+=====================================================================
+
+## NODESELECTOR
+
+=====================================================================
+
+## nodeSelector is the simplest recommended form of node selection constraint. 
+
+## nodeSelector is a field of PodSpec. 
+
+## It specifies a map of key-value pairs. 
+
+## For the pod to be eligible to run on a node, the node must have each of the indicated key-value pairs as labels
+
+## The most common usage is one key-value pair.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Attach a label to the node
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get nodes
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Add a label to a Node
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Syntax
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl label nodes <node-name> <label-key>=<label-value>
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl label nodes ip-192-168-21-12.ec2.internal  user_id=ep33
+
+kubectl get nodes --show-labels
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## ADD NODESELECTOR TO A POD
+
+=====================================================================
+
+## Copy paste 01-templates/pod-nginx.txt
+## Then, do the following:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl apply -f pod-nginx.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get pods -o wide
+
+=====================================================================
+
+## AFFINITY
+
+=====================================================================
+
+## Add label to the same node
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl label nodes ip-192-168-21-12.ec2.internal  azname=az1
+
+kubectl get nodes --show-labels
+
+=====================================================================
+
+## CREATE AFFINITY
+
+=====================================================================
+
+## Copy paste 01-templates/pod-with-node-affinity.txt
+## Then, do the following:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl apply -f pod-with-node-affinity.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get pods -o wide
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CONGRATULATIONS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE NODEGROUP 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## (Why should we do that? Discuss with the trainer)
+
+## On CODE-SERVER Terminal
+
+eksctl delete nodegroup ep33-ng-01 --cluster ep33-eks-01
+
+===================================================================
+
+## IF you are unable to delete nodegroup ....
+
+---
+
+### ✅ Solution: Clean Pod Disruption Constraints Before Deletion
+
+---
+
+### 🔧 Step-by-Step Fix
+
+#### **1. Check the PDBs**
+
+```bash
+kubectl get pdb -n kube-system
+```
+
+You'll likely see something like:
+
+```
+NAME           MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS
+coredns        1               N/A               0
+metrics-server 1               N/A               0
+```
+
+---
+
+#### **2. Scale up system-critical deployments**
+
+This is the safest method and maintains cluster stability.
+
+```bash
+kubectl scale deployment coredns -n kube-system --replicas=3
+kubectl scale deployment metrics-server -n kube-system --replicas=3
+```
+
+➡️ Wait a few seconds for new pods to come up:
+
+```bash
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+kubectl get pods -n kube-system -l k8s-app=metrics-server
+```
+
+---
+
+#### **3. Retry the nodegroup deletion**
+
+Now that enough pods exist to satisfy PDBs, proceed:
+
+```bash
+eksctl delete nodegroup --cluster=ep33-eks-01 --name=ep33-ng-01 --region=us-east-1
+```
+
+---
+
+### ⚠️ Alternative (if you're stuck)
+
+If scaling fails or you're in a test cluster:
+
+#### Option A: Forcefully remove the nodegroup (not recommended for prod) using AWS Console
+
+```Console
+
+AWS Console -> EKS -> Clusters -> ep33-eks-01 -> Compute -> Node groups -> Delete
+
+```
+
+➡️ This might still fail if eviction is blocked by the Kubernetes control plane.
+
+#### Option B: Patch the PDBs temporarily
+
+```bash
+kubectl patch pdb coredns -n kube-system --type='json' \
+  -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 0}]'
+
+kubectl patch pdb metrics-server -n kube-system --type='json' \
+  -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 0}]'
+```
+
+Then retry the deletion. After deletion, **restore original PDB values**.
+
+---
+
+### ✅ After Deletion Cleanup
+
+If you patched PDBs, revert them:
+
+```bash
+kubectl patch pdb coredns -n kube-system --type='json' \
+  -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 1}]'
+
+kubectl patch pdb metrics-server -n kube-system --type='json' \
+  -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 1}]'
+```
+
+---
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

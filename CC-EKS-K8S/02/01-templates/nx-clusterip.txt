@@ -1,0 +1,14 @@
+cat <<EOF > nx-clusterip.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ep33-nginx-service
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+EOF
