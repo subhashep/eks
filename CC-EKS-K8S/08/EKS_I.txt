@@ -1,0 +1,81 @@
+READINESS PROBE
+
+=====================================================================
+
+## Configure the Probe
+
+=====================================================================
+
+cd ~/environment
+
+## Ensure ./healthchecks directory is already present
+
+## Copy paste the contents of 04-templates/readiness-deployment.txt
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create Deployment
+
+=====================================================================
+
+kubectl apply -f ~/environment/healthchecks/readiness-deployment.yaml
+
+## View deployments
+
+kubectl get pods -l app=readiness-deployment
+
+## Confirm all replicas are avaialable
+
+kubectl describe deployment readiness-deployment | grep Replicas:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Introduce a Failure
+
+=====================================================================
+
+## Select one ready pod to test the following
+
+## this will delete /tmp/healthy to make it deliberately fail!
+
+kubectl exec -it <YOUR-READINESS-POD-NAME> -- rm /tmp/healthy
+
+## now execute the following again
+
+kubectl get pods -l app=readiness-deployment
+
+## You will see one pod that has been deliberately failed would not show as ready
+
+## run this again
+
+kubectl describe deployment readiness-deployment | grep Replicas:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## RESTORE READY STATE
+
+=====================================================================
+
+kubectl exec -it <YOUR-READINESS-POD-NAME> -- touch /tmp/healthy
+
+## now run this
+
+kubectl get pods -l app=readiness-deployment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CLEANUP
+
+=====================================================================
+
+kubectl delete -f ~/environment/healthchecks/liveness-app.yaml
+
+kubectl delete -f ~/environment/healthchecks/readiness-deployment.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

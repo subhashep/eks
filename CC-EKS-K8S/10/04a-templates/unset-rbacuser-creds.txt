@@ -1,0 +1,4 @@
+cat << EoF > unset-rbacuser-creds.sh
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_ACCESS_KEY_ID
+EoF

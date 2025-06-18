@@ -1,0 +1,14 @@
+cat <<EOF > timecat-loadbalancer.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ep33-timecat-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: timecat
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+EOF

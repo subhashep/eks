@@ -1,0 +1,10 @@
+cat <<EOF > k8s_manifest/authentication-ConfigMap.yml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentication-dbcreation-script
+data: 
+  mysql_auth.sql: |-
+    DROP DATABASE IF EXISTS auth;
+    CREATE DATABASE auth; 
+EOF

@@ -1,0 +1,127 @@
+EKS_J.txt
+
+=========
+
+## AUTOSCALING 
+
+=====================================================================
+
+## HPA
+
+	## Horizontal Pod Autoscaler 
+
+	## scales the pods in a deployment or replica set
+
+## CA
+
+	## Cluster Autoscaler
+
+	## automatically adjusts the size of a Kubernetes Cluster
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Check if Metrics Server already installed
+
+=====================================================================
+
+kubectl -n kube-system get deployment/metrics-server
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Deploy the Metrics Server
+
+=====================================================================
+
+## Metrics Server is a scalable, efficient source of container resource metrics for Kubernetes built-in autoscaling pipelines.
+
+## These metrics will drive the scaling behavior of the deployments.
+
+## We will deploy the metrics server using Kubernetes Metrics Server.
+
+
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.3/components.yaml
+
+## Need to verify the status of the metrics-server APIService (it could take a few minutes).
+
+
+kubectl get apiservice v1beta1.metrics.k8s.io -o json | jq '.status'
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Verify metrics-server deployment
+
+=====================================================================
+
+kubectl get deployment metrics-server -n kube-system
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Horizontal Pod Autoscale
+
+=====================================================================
+
+## To test your Horizontal Pod Autoscaler installation
+
+=====================================================================
+
+## Deploy a simple Apache web server application
+
+cd ~/environment
+
+kubectl apply -f https://k8s.io/examples/application/php-apache.yaml
+
+## This Apache web server pod is given a 500 millicpu CPU limit and it is serving on port 80.
+
+## Create a Horizontal Pod Autoscaler resource for the php-apache deployment.
+
+kubectl autoscale deployment php-apache --cpu-percent=50 --min=2 --max=10
+
+kubectl get deployment php-apache
+
+## As you can see, the current CPU load is <unknown>, because there's no load on the server yet. The pod count is already at its lowest boundary (one), so it cannot scale in.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create a load for the web server by running a container.
+
+=====================================================================
+
+kubectl run -it --rm load-generator --image=busybox /bin/sh 
+
+## If you don't receive a command prompt after several seconds, you may need to press Enter. 
+
+## From the command prompt, enter the following command to generate load and cause the autoscaler to scale out the deployment
+
+while true; do wget -q -O- http://php-apache; done
+
+## *** Open a new terminal window
+
+kubectl get hpa
+
+kubectl get deployment php-apache
+
+
+## As long as actual CPU percentage is higher than the target percentage, then the replica count increases, up to 10. In this case, it's 250%, so the number of REPLICAS continues to increase.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE
+
+=====================================================================
+
+## Press Ctrl+C on the BusyBox terminal window to exit and delete the pod
+
+exit
+
+## Then delete the PHP Apache service
+
+kubectl delete deployment.apps/php-apache service/php-apache horizontalpodautoscaler.autoscaling/php-apache
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

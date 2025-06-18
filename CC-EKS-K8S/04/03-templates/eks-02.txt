@@ -1,0 +1,24 @@
+cat << EOF > ep33-eks-02.yaml
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: ep33-eks-02
+  region: ${AWS_REGION}
+  version: "1.28"
+availabilityZones: ["${AZ1}", "${AZ2}"]
+managedNodeGroups:
+- name: ep33-ng-02
+  instanceType: t3.medium
+  desiredCapacity: 2
+  volumeSize: 30
+  ssh:
+    allow: true
+    publicKeyName: ep33-eks
+# To enable all of the control plane logs, uncomment below:
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+secretsEncryption:
+  keyARN: ${MASTER_ARN}
+EOF

@@ -1,0 +1,192 @@
+EKS_D.txt
+=========
+## CREATE A NEW CLUSTER
+
+=====================================================================
+
+## On CODE-SERVER
+
+## cd ~/environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Copy paste 03-templates/eks-02.txt
+
+## Then, do the following:
+
+eksctl create cluster -f ep33-eks-02.yaml 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## GET NODES
+
+=====================================================================
+
+kubectl get nodes 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+=====================================================================
+
+## IAM OIDC Provider (If not already done only)
+
+=====================================================================
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CODE-SERVER -> Environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cd ~/environment
+
+eksctl utils associate-iam-oidc-provider \
+--region us-east-1 \
+--cluster ep33-eks-02 \
+--approve
+
+=====================================================================
+
+## EKS with EBS
+
+=====================================================================
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CODE-SERVER -> Environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cd ~/environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## IAM Policy for EBS (this part to be done by the trainer ONLY)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Policy document: 02-templates/EPSH-EC2-EBS-POLICY
+
+## IAM Policy EPSH-EC2-EBS-POLICY to be created
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Add Policy to IAM role for Worker Nodes (to be done by all participants)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Get Worker node IAM Role ARN
+
+kubectl -n kube-system describe configmap aws-auth
+
+## Make note of the role ARN
+
+## Console -> IAM -> Roles
+
+## Search and select the role with name in the ARN
+
+## Permissions -> Attach Policies -> EPSH-EC2-EBS-POLICY
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Deploy Amazon EBS CSI Driver
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+
+## Verify ebs-csi pods running
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get pods -n kube-system
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## INSTALL MYSQL DATABASE ON EBS
+
+=====================================================================
+
+cd ~/environment
+
+mkdir k8s_manifest
+
+## Copy paste k8s_manifest/01-storage-class.yml
+
+## Copy paste k8s_manifest/02-persistent-volume-claim.yml
+
+## Copy paste k8s_manifest/03-authentication-ConfigMap.yml
+
+## Copy paste k8s_manifest/04-mysql-deployment.yml
+
+## Copy paste k8s_manifest/05-mysql-clusterip-service.yml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create Storage Class & PVC
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl apply -f k8s_manifest/
+
+## List Storage Classes
+
+kubectl get sc
+
+## List PVC
+
+kubectl get pvc 
+
+## List PV
+
+kubectl get pv
+
+kubectl get pods 
+
+## List pods based on  label name
+
+kubectl get pods -l app=mysql
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Connect to MySQL Database
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql -pTopSecret#123
+
+## Verify schemas
+
+## mysql> 
+
+show schemas;
+
+## back to CODE-SERVER
+
+exit
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE .... 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Let us delete this cluster
+
+## We will create cluster in the next lab with differnt configurations
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## On CODE-SERVER 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl delete -f k8s_manifest/
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

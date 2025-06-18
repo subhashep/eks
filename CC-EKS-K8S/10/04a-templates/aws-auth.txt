@@ -1,0 +1,6 @@
+cat << EoF >> aws-auth.yaml
+data:
+  mapUsers: |
+    - userarn: arn:aws:iam::${ACCOUNT_ID}:user/ep33-rbac-user
+      username: rbac-user
+EoF

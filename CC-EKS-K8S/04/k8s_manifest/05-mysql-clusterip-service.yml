@@ -1,0 +1,13 @@
+cat <<EOF > k8s_manifest/mysql-clusterip-service.yml
+apiVersion: v1
+kind: Service
+metadata: 
+  name: mysql
+spec:
+  selector:
+    app: mysql 
+  ports: 
+    - port: 3306  
+  clusterIP: None # This means we are going to use Pod IP   
+EOF
+ 

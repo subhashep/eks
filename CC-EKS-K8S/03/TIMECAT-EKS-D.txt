@@ -1,0 +1,204 @@
+
+=====================================================================
+
+## IAM OIDC Provider
+
+=====================================================================
+
+## Your cluster has an OpenID Connect (OIDC) issuer URL associated with it. 
+
+## To use AWS Identity and Access Management (IAM) roles for service accounts, an IAM OIDC provider must exist for your cluster's  issuer URL.
+
+## Amazon EKS supports using OpenID Connect (OIDC) identity providers as a method to authenticate users to your cluster. 
+
+## OIDC identity providers can be used with, or as an alternative to AWS Identity and Access Management (IAM).
+
+# What is OpenID Connect
+------------------------
+
+## OpenID Connect is an interoperable authentication protocol based on the OAuth 2.0 framework of specifications (IETF RFC 6749 and 6750). 
+
+## It simplifies the way to verify the identity of users based on the authentication performed by an Authorization Server and to obtain user profile information in an interoperable and REST-like manner.
+
+## OpenID Connect enables application and website developers to launch sign-in flows and receive verifiable assertions about users across Web-based, mobile, and JavaScript clients. 
+
+## And the specification suite is extensible to support a range of optional features such as encryption of identity data, discovery of OpenID Providers, and session logout.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CODE-SERVER -> Environment
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cd ~/environment
+
+eksctl utils associate-iam-oidc-provider \
+--region ${AWS_REGION} \
+--cluster ep33-eks-01 \
+--approve
+
+=====================================================================
+
+## Create Public Node Group with Add-Ons
+
+=====================================================================
+
+eksctl create nodegroup --cluster=ep33-eks-01 \
+ --region=${AWS_REGION} \
+ --name=ep33-public-ng-01 \
+ --node-type=t3.medium \
+ --nodes=2 \
+ --nodes-min=2 \
+ --nodes-max=4 \
+ --node-volume-size=20 \
+ --ssh-access \
+ --ssh-public-key=ep33-eks \
+ --managed \
+ --asg-access \
+ --external-dns-access \
+ --full-ecr-access \
+ --appmesh-access \
+ --alb-ingress-access 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Check Cluster & Nodes
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Console -> EKS -> ep33-eks-01 -> ep33-public-ng-01
+
+## Check Subnets, Route Tables, IGW
+
+## WorkerNode IAM Policies
+
+## Security Groups
+
+## Back to CODE-SERVER
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Get NodeGroups
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+eksctl get nodegroup --cluster=ep33-eks-01
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Get Nodes
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl get nodes -o wide
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## View kubectl context
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+kubectl config view --minify
+
+=====================================================================
+
+## LET US VIEW OUR timecat APP ON K8S and EKS
+
+=====================================================================
+
+## CREATE timecat DEPLOYMENT
+
+=====================================================================
+
+## Copy paste 01A-templates/timecat-deployment.txt
+## Then, do the following:
+
+kubectl apply -f timecat-deployment.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## GET POD DETAILS
+
+================
+
+kubectl get pods -l 'app=timecat' -o wide | awk {'print $1" " $3 " " $6'} | column -t
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## LOAD BALANCER SERVICE
+
+=====================================================================
+
+## Copy paste 01A-templates/timecat-loadbalancer.txt
+
+## Then, do the following:
+
+kubectl create -f timecat-loadbalancer.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## LOAD BALANCER DETAILS
+
+=====================================================================
+
+kubectl get service/ep33-timecat-service |  awk {'print $1" " $2 " " $4 " " $5'} | column -t
+
+## Make note of Loadbalancer Endpoint. Copy
+
+## Paste LB Endpoint on a browser tab:
+
+## Do you see timecat web server home page?
+
+## No?
+
+## Why?
+
+## Discuss and find a solution
+
+=====================================================================
+
+## DELETE DEPLOYMENT AND SERVICE
+
+=====================================================================
+
+kubectl delete service ep33-timecat-service
+
+kubectl delete deployment ep33-timecat-deployment
+
+=====================================================================
+
+
+## CONGRATULATIONS
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## You have successfully created  timecat app from ECR based images
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DELETE NODEGROUP 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## On CODE-SERVER Terminal
+
+eksctl delete nodegroup ep33-public-ng-01 --cluster ep33-eks-01
+
+>>>> Got stuck while deleting nodegroup?
+<<<< Follow the solution provided in 02\EKS-B03.txt
+
+## DELETE CLUSTER 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## On CODE-SERVER Terminal
+
+eksctl delete cluster ep33-eks-01
+
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

@@ -1,0 +1,74 @@
+EKS_I.txt
+
+=========
+
+## HEALTH CHECK
+
+============
+
+## By default, Kubernetes will restart a container if it crashes 
+
+## Liveness and Readiness probes are used for identifying the healthy containers
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## LIVENESS PROBE
+
+=====================================================================
+
+## Configure the Probe
+
+=====================================================================
+
+cd ~/environment
+
+mkdir -p ~/environment/healthchecks
+
+## Copy paste the contents of 04-templates/liveness-app.txt
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create the pod using the manifest
+
+kubectl apply -f ~/environment/healthchecks/liveness-app.yaml
+
+kubectl get pod liveness-app
+
+## Observe RESTARTS field in the output
+
+## Event history
+
+kubectl describe pod liveness-app
+
+## Introduce a Failure
+
+=====================================================================
+
+## Send a SIGUSR1 signal to the nodejs application. 
+
+## This will send a kill signal to the application process in the docker runtime.
+
+kubectl exec -it liveness-app -- /bin/kill -s SIGUSR1 1
+
+## After 30 seconds
+
+kubectl describe pod liveness-app
+
+kubectl get pod liveness-app
+
+## Check the status of the container health checks
+
+kubectl logs liveness-app
+
+## Add --previous flag, observe the output
+
+kubectl logs liveness-app --previous
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
