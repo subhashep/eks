@@ -35,11 +35,23 @@ kubectl -n kube-system get deployment/metrics-server
 ## Metrics Server is a scalable, efficient source of container resource metrics for Kubernetes built-in autoscaling pipelines.
 
 ## These metrics will drive the scaling behavior of the deployments.
+## Remove old metric server
+
+kubectl delete deployment metrics-server -n kube-system --ignore-not-found
+kubectl delete service metrics-server -n kube-system --ignore-not-found
+kubectl delete apiservice v1beta1.metrics.k8s.io --ignore-not-found
+kubectl delete clusterrole system:metrics-server --ignore-not-found
+kubectl delete clusterrole system:aggregated-metrics-reader --ignore-not-found
+kubectl delete clusterrolebinding system:metrics-server --ignore-not-found
+kubectl delete clusterrolebinding metrics-server:system:auth-delegator --ignore-not-found
+kubectl delete rolebinding metrics-server-auth-reader -n kube-system --ignore-not-found
+kubectl delete serviceaccount metrics-server -n kube-system --ignore-not-found
 
 ## We will deploy the metrics server using Kubernetes Metrics Server.
 
 
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.3/components.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
 
 ## Need to verify the status of the metrics-server APIService (it could take a few minutes).
 
