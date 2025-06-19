@@ -1,0 +1,176 @@
+EKS_U.txt
+
+=========
+
+## SERVICE MESH
+
+=====================================================================
+
+## A service mesh is a dedicated infrastructure layer for handling service-to-service communication. 
+
+## It’s responsible for the reliable delivery of requests through the complex topology of services that comprise a modern, cloud native application.
+
+## Service mesh solutions have two distinct components that behave somewhat differently:
+
+	## The data plane is composed of a set of intelligent proxies (Envoy) deployed as sidecars. 
+
+		## These proxies mediate and control all network communication between microservices along with Mixer, a general-purpose policy and telemetry hub.
+
+	## The control plane manages and configures the proxies to route traffic. 
+
+		## Additionally, the control plane configures Mixers to enforce policies and collect telemetry.
+
+## ISTIO
+
+=====================================================================
+
+## Istio is a completely open source service mesh that layers transparently onto existing distributed applications. 
+
+## It’s also a platform, including APIs, that let it integrate into any logging platform, or telemetry or policy system.
+
+## Istio works by having a small network proxy sit alongside each microservice called “sidecar”. 
+
+## It’s role is to intercept all of the service’s traffic, and handles it more intelligently than a simple layer 3 network can. 
+
+## Envoy proxy is used as the sidecar and was originally written at Lyft and is now a CNCF project.
+
+## An Istio service mesh is logically split into a data plane and a control plane.
+
+## The data plane is composed of a set of intelligent proxies (Envoy) deployed as sidecars. 
+
+## These proxies mediate and control all network communication between microservices. 
+
+## They also collect and report telemetry on all mesh traffic.
+
+## The control plane manages and configures the proxies to route traffic.
+
+--------------------------------------------------
+
+--------------------------------------------------
+
+## INSTALL ISTIO
+
+=====================================================================
+
+echo 'export ISTIO_VERSION="1.8.0"' >> ${HOME}/.bash_profile
+
+source ${HOME}/.bash_profile
+
+cd ~/environment
+
+curl -L https://istio.io/downloadIstio | sh -
+
+cd ${HOME}/environment/istio-${ISTIO_VERSION}
+
+sudo cp -v bin/istioctl /usr/local/bin/
+
+istioctl version --remote=false
+
+--------------------------------------------------
+
+## INSTALL ISTIO ON EKS
+
+=====================================================================
+
+istioctl install --set profile=demo
+
+--------------------------------------------------
+
+## ISTIO-SYSTEM NAMESPACE
+
+=====================================================================
+
+kubectl -n istio-system get svc
+
+kubectl -n istio-system get pods
+
+--------------------------------------------------
+
+## SIDE-CAR INJECTION
+
+=====================================================================
+
+## The key feature is injecting ENVOY side-car proxy into a pod
+
+## Manually :: using istioctl
+
+## Automatically:: using side-car injector
+
+--------------------------------------------------
+
+## DEPLOY SAMPLE APPS - BOOKINFO
+
+=====================================================================
+
+kubectl create namespace bookinfo
+
+kubectl label namespace bookinfo istio-injection=enabled
+
+kubectl get ns bookinfo --show-labels
+
+--------------------------------------------------
+
+## BOOKINFO - DETAILS
+
+=====================================================================
+
+## The Bookinfo application is broken into four separate microservices:
+
+--------------------------------------------------
+
+## productpage
+
+## The productpage microservice calls the details and reviews microservices to populate the page.
+
+--------------------------------------------------
+
+## details
+
+## The details microservice contains book information.
+
+--------------------------------------------------
+
+## reviews
+
+## The reviews microservice contains book reviews. It also calls the ratings microservice.
+
+--------------------------------------------------
+
+## ratings
+
+## The ratings microservice contains book ranking information that accompanies a book review.
+
+--------------------------------------------------
+
+## Deploy the Sample Apps
+
+=====================================================================
+
+kubectl -n bookinfo apply \
+  -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/platform/kube/bookinfo.yaml
+
+kubectl -n bookinfo get pod,svc
+
+--------------------------------------------------
+
+## Create an Istio Gateway
+
+=====================================================================
+
+kubectl -n bookinfo \
+ apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/bookinfo-gateway.yaml
+
+export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+echo "http://${GATEWAY_URL}/productpage"
+
+## OPEN the ELB GATEWAY URL in a browser window
+
+--------------------------------------------------
+
+--------------------------------------------------
+
+## That's all for now
+
+--------------------------------------------------
+

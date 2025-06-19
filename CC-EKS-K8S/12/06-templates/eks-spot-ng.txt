@@ -1,0 +1,22 @@
+cat << EoF > ~/environment/spot/ep33-eks-spot-ng.yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: ep33-eks-02 
+  region: ${AWS_REGION}
+nodeGroups:
+  - name: ep33-ng-spot
+    labels:
+      lifecycle: Ec2Spot
+    taints:
+      spotInstance: true:PreferNoSchedule
+    minSize: 1
+    maxSize: 2
+    instancesDistribution: 
+      instanceTypes:
+        - m5.large
+        - m4.large
+      onDemandBaseCapacity: 0
+      onDemandPercentageAboveBaseCapacity: 0 # all the instances will be Spot Instances
+      spotAllocationStrategy: capacity-optimized # launch Spot Instances from the most availably Spot Instance pools
+EoF

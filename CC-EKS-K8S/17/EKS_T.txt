@@ -1,0 +1,46 @@
+EKS_T.txt
+
+========
+
+## CLOUDWATCH CONTAINER INSIGHTS
+
+=====================================================================
+
+## Pre-Requisites
+
+=====================================================================
+
+## Attaching a policy to the IAM role of your worker nodes
+
+## Follow these steps to attach the policy to the IAM role of your worker nodes. This works for both Amazon EKS clusters and Kubernetes clusters outside of Amazon EKS.
+
+## To attach the necessary policy to the IAM role for your worker nodes
+
+## Open the Amazon EC2 console at https://console.aws.amazon.com/ec2/.
+
+## Select one of the worker node instances and choose the IAM role in the description.
+
+## On the IAM role page, choose Attach policies.
+
+## In the list of policies, select the check box next to CloudWatchAgentServerPolicy. If necessary, use the search box to find this policy.
+
+## Choose Attach policies.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Container Insights using the quick start
+
+=====================================================================
+
+curl https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/quickstart/cwagent-fluentd-quickstart.yaml | sed "s/{{cluster_name}}/ep33-eks-02/;s/{{region_name}}/${AWS_REGION}/" | kubectl apply -f -
+
+curl https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/quickstart/cwagent-fluentd-quickstart.yaml | sed "s/{{cluster_name}}/ep33-eks-02/;s/{{region_name}}/${AWS_REGION}/" | kubectl apply -f -
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

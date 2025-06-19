@@ -1,0 +1,237 @@
+EKS_V.txt
+
+=========
+
+## TRAFFIC MANAGEMENT
+
+=====================================================================
+
+--------------------------------------------------
+
+## Create the default destination rules
+
+--------------------------------------------------
+
+## Deploying a microservice-based application in an Istio service mesh allows one to externally control service monitoring and tracing, request (version) routing, resiliency testing, security and policy enforcement, and more in a consistent manner across the services, and the application.
+
+--------------------------------------------------
+
+## Subset
+
+--------------------------------------------------
+
+## A subset of endpoints of a service.
+
+## Subsets can be used for scenarios like A/B testing, or routing to a specific version of a service. Refer to VirtualService documentation for examples of using subsets in these scenarios.
+
+## In addition, traffic policies defined at the service-level can be overridden at a subset-level.
+
+--------------------------------------------------
+
+## Destination Rules
+
+=====================================================================
+
+kubectl -n bookinfo apply \
+  -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/destination-rule-all.yaml
+
+## view destinations
+
+kubectl -n bookinfo get destinationrules -o yaml
+
+--------------------------------------------------
+
+## Route traffic to one version of a service
+
+=====================================================================
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-all-v1.yaml
+
+kubectl -n bookinfo get virtualservices reviews -o yaml
+
+--------------------------------------------------
+
+## Route based on user identity
+
+=====================================================================
+
+## All traffic from a user named Jason will be routed to the service reviews:v2.
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-reviews-test-v2.yaml
+
+kubectl -n bookinfo get virtualservices reviews -o yaml
+
+--------------------------------------------------
+
+## TEST
+
+=====================================================================
+
+echo "http://${GATEWAY_URL}/productpage"
+
+## Open the ELB on the browser
+
+--------------------------------------------------
+
+## TEST-01
+
+--------------------------------------------------
+
+## Sign in with a username: stephen without any password
+
+--------------------------------------------------
+
+## TEST-02
+
+--------------------------------------------------
+
+## Sign in with a username: jason without any password
+
+## Did you see any difference?
+
+--------------------------------------------------
+
+## Injecting an HTTP delay fault
+
+=====================================================================
+
+## To test for resiliency, inject a 7s delay between the reviews:v2 and ratings microservices for user jason. 
+
+## This test will uncover a bug that was intentionally introduced into the Bookinfo app.
+
+--------------------------------------------------
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-ratings-test-delay.yaml
+
+--------------------------------------------------
+
+## We can display the updated virtual service
+
+--------------------------------------------------
+
+kubectl -n bookinfo get virtualservice ratings -o yaml
+
+--------------------------------------------------
+
+## TEST AGAIN
+
+=====================================================================
+
+## Sign in with a username: jason without any password
+
+## Did you see any difference?
+
+--------------------------------------------------
+
+## INTRODUCTE HTTP ABORT
+
+=====================================================================
+
+## We will introduce an HTTP abort to the ratings microservices for the test user jason. 
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-ratings-test-abort.yaml
+
+kubectl -n bookinfo get virtualservice ratings -o yaml
+
+## The page will immediately display the “Ratings service is currently unavailable”
+
+--------------------------------------------------
+
+## Traffic Shifting
+
+=====================================================================
+
+## Next, we’ll demonstrate how to gradually migrate traffic from one version of a microservice to another. 
+
+## In our example, we’ll send 50% of traffic to reviews:v1 and 50% to reviews:v3.
+
+--------------------------------------------------
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-all-v1.yaml
+
+--------------------------------------------------
+
+## Open the Bookinfosite in your browser. 
+
+## Notice that the reviews part of the page displays with no rating stars, no matter how many times you refresh.
+
+--------------------------------------------------
+
+## TRANSFER 50%
+
+=====================================================================
+
+## We can now transfer 50% of the traffic from reviews:v1 to reviews:v3
+
+--------------------------------------------------
+
+kubectl -n bookinfo \
+  apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-reviews-50-v3.yaml
+
+kubectl -n bookinfo get virtualservice reviews -o yaml
+
+--------------------------------------------------
+
+## To test it, refresh your browser over and over, and you’ll see only reviews:v1 and reviews:v3.
+
+--------------------------------------------------
+
+## 100% V3
+
+=====================================================================
+
+kubectl -n bookinfo apply -f ${HOME}/environment/istio-${ISTIO_VERSION}/samples/bookinfo/networking/virtual-service-reviews-v3.yaml
+
+--------------------------------------------------
+
+## Test again. 100% v3
+
+--------------------------------------------------
+
+## FINAL CLEANUP
+
+=====================================================================
+
+## DELETE CLUSTER
+
+=====================================================================
+
+eksctl delete cluster ep33-eks-02
+
+--------------------------------------------------
+
+## DELETE CODE-SERVER Environment
+
+=====================================================================
+
+## AWS -> Console -> CloudFormation -> Select your stack
+
+## Delete
+
+--------------------------------------------------
+
+## FINAL CHECK
+
+=====================================================================
+
+## Ensure all CloudFormation stacks are deleted
+
+## Delete Key pairs
+
+## Delete EC2 Snapshots
+
+## Delete ECR Repo
+
+--------------------------------------------------
+
+--------------------------------------------------
+
+## That's all for now
+
+--------------------------------------------------
+

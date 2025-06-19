@@ -1,0 +1,97 @@
+EKS_Q.txt
+
+=========
+
+## ENCRYPTING KUBERNETES SECRETS
+
+=====================================================================
+
+## Kubernetes can store secrets that pods can access via a mounted volume
+
+## Amazon EKS clusters support the capability of encrypting your Kubernetes secrets using 
+
+	## AWS Key Management Service (KMS) 
+
+	## Customer Managed Keys (CMK). 
+
+## The only requirement is to enable the encryption provider support during EKS cluster creation.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CREATE A SECRET
+
+=====================================================================
+
+## Encrypt Your Secret
+
+kubectl create ns secretstore
+
+## Create a text file containing your secret:
+
+mkdir secrets
+
+echo -n "TopSecret#1234" > secrets/test-creds
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create your secret
+
+=====================================================================
+
+kubectl create secret \
+        generic test-creds \
+        --from-file=test-creds=secrets/test-creds \
+        --namespace secretstore
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Retrieve the secret
+
+=====================================================================
+
+kubectl get secret test-creds \
+  -o jsonpath="{.data.test-creds}" \
+  --namespace secretstore | \
+  base64 --decode
+
+## Deploy a Pod to Consume the Secret
+
+=====================================================================
+
+cd ~/environment
+
+mkdir secrets
+
+## Copy paste the contents of 07-templates/podconsumingsecret.txt
+
+## Then execute
+
+kubectl --namespace secretstore \
+        apply -f secrets/podconsumingsecret.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## ACCESS SECRET
+
+=====================================================================
+
+kubectl --namespace secretstore exec -it consumesecret -- cat /tmp/test-creds
+
+## CLEANUP
+
+=====================================================================
+
+rm -f secrets/test-creds
+
+rm -f secrets/podconsumingsecret.yaml
+
+kubectl delete ns secretstore
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

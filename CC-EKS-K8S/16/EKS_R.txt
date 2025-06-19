@@ -1,0 +1,273 @@
+EKS_R.txt
+
+=========
+
+## LOGGING WITH EFK
+
+=====================================================================
+
+## Amazon Elasticsearch Service
+
+=====================================================================
+
+## a fully managed service that makes it easy for you to deploy, secure, and run Elasticsearch 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Fluent Bit
+
+=====================================================================
+
+## an open source and multi-platform Log Processor and Forwarder
+
+## It’s fully compatible with Docker and Kubernetes environments.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Kibana
+
+=====================================================================
+
+## an open source frontend application that sits on top of the Elasticsearch, providing search and data visualization
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## EFK
+
+=====================================================================
+
+## Fluent Bit will forward logs from the individual instances in the cluster to a centralized logging backend where they are combined for higher-level reporting using ElasticSearch and Kibana.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## IRSA for FLUENT BIT
+
+=====================================================================
+
+## OIDC identity provider
+
+=====================================================================
+
+## ** NOTE **you might have already done the same in earlier labs
+
+eksctl utils associate-iam-oidc-provider \
+    --cluster ep33-eks-02 \
+    --approve
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Creating an IAM policy
+
+=====================================================================
+
+cd ~/environment
+
+mkdir ~/environment/logging/
+
+export ES_DOMAIN_NAME="ep33-eks-02-logging"
+
+## Copy paste the contents of 08-templates/fluent-bit-policy.txt
+
+## Then execute
+
+aws iam create-policy   \
+  --policy-name ep33-EPSH-FLUENT-BIT-POLICY \
+  --policy-document file://~/environment/logging/fluent-bit-policy.json
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Create IAM Role
+
+=====================================================================
+
+kubectl create namespace logging
+
+eksctl create iamserviceaccount \
+    --name fluent-bit \
+    --namespace logging \
+    --cluster ep33-eks-02 \
+    --attach-policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ep33-EPSH-FLUENT-BIT-POLICY" \
+    --approve \
+    --override-existing-serviceaccounts
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DESCRIBE SERVICE ACCOUNT
+
+=====================================================================
+
+kubectl -n logging describe sa fluent-bit
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## PROVISION AN ELASTICSEARCH CLUSTER
+
+=====================================================================
+
+## VARIABLES
+
+=====================================================================
+
+## Elasticsearch version
+
+export ES_VERSION="7.4"
+
+## kibana admin user
+
+export ES_DOMAIN_USER="ep33-eks-02"
+
+## kibana admin password
+
+export ES_DOMAIN_PASSWORD="Welcome#123"
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CREATE ES CLUSTER
+
+=====================================================================
+
+# Download and update the template using the variables created previously
+
+cd ~/environment
+
+## Copy paste the contents of 08-templates/es_domain.txt
+
+## Then execute
+
+aws es create-elasticsearch-domain \
+  --cli-input-json  file://~/environment/logging/es_domain.json
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## ES READY?
+
+=====================================================================
+
+if [ $(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query 'DomainStatus.Processing') == "false" ]
+  then
+    tput setaf 2; echo "The Elasticsearch cluster is ready"
+  else
+    tput setaf 1;echo "The Elasticsearch cluster is NOT ready"
+fi
+
+## CONFIGURE ELASTICSEARCH ACCESS
+
+=====================================================================
+
+## Map Roles
+
+=====================================================================
+
+## We need to retrieve the Fluent Bit Role ARN
+
+export FLUENTBIT_ROLE=$(eksctl get iamserviceaccount --cluster ep33-eks-02 --namespace logging -o json | jq '.iam.serviceAccounts[].status.roleARN' -r)
+
+## Get the Elasticsearch Endpoint
+
+export ES_ENDPOINT=$(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --output text --query "DomainStatus.Endpoint")
+
+## Update the Elasticsearch internal database
+
+##
+curl -sS -u "${ES_DOMAIN_USER}:${ES_DOMAIN_PASSWORD}" \
+    -X PATCH \
+    https://${ES_ENDPOINT}/_opendistro/_security/api/rolesmapping/all_access?pretty \
+    -H 'Content-Type: application/json' \
+    -d'[
+        {
+          "op": "add", "path": "/backend_roles", "value": ["'${FLUENTBIT_ROLE}'"]
+        }
+      ]
+      '
+##
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## DEPLOY FLUENT BIT
+
+=====================================================================
+
+cd ~/environment
+
+## get the Elasticsearch Endpoint
+
+export ES_ENDPOINT=$(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --output text --query "DomainStatus.Endpoint")
+
+kubectl apply -f ~/environment/logging/fluentbit.yaml
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## GET LOGGING PODS
+
+=====================================================================
+
+kubectl --namespace=logging get pods
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## KIBANA
+
+=====================================================================
+
+echo "Kibana URL: https://${ES_ENDPOINT}/_plugin/kibana/
+Kibana user: ${ES_DOMAIN_USER}
+Kibana password: ${ES_DOMAIN_PASSWORD}"
+
+## Open
+
+## Login
+
+## Now click Connect to your Elasticsearch index
+
+## Add *fluent-bit* as the Index pattern and click Next step
+
+## Select @timestamp as the Time filter field name and close the Configuration window by clicking on Create index pattern
+
+## Finally you can select Discover from the left panel and start exploring the logs
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## CLEANUP
+
+=====================================================================
+
+cd  ~/environment/
+
+kubectl delete -f ~/environment/logging/fluentbit.yaml
+
+aws es delete-elasticsearch-domain \
+    --domain-name ${ES_DOMAIN_NAME}
+
+eksctl delete iamserviceaccount \
+    --name fluent-bit \
+    --namespace logging \
+    --cluster ep33-eks-02 \
+    --wait
+
+aws iam delete-policy   \
+  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ep33-EPSH-FLUENT-BIT-POLICY"
+
+kubectl delete namespace logging
+
+rm -rf ~/environment/logging
+
+unset ES_DOMAIN_NAME
+
+unset ES_VERSION
+
+unset ES_DOMAIN_USER
+
+unset ES_DOMAIN_PASSWORD
+
+unset FLUENTBIT_ROLE
+
+unset ES_ENDPOINT
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## That's all for now
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
